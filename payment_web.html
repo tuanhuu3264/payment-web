@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thanh toán SePay</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .payment-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .logo {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        .payment-info {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            text-align: left;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #555;
+        }
+
+        .info-value {
+            color: #333;
+            font-weight: 500;
+        }
+
+        .amount {
+            font-size: 24px;
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        .qr-section {
+            margin: 30px 0;
+        }
+
+        .qr-code {
+            background: white;
+            border: 2px solid #eee;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            display: inline-block;
+        }
+
+        .qr-code img {
+            max-width: 200px;
+            height: auto;
+        }
+
+        .qr-placeholder {
+            width: 200px;
+            height: 200px;
+            background: #f0f0f0;
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 14px;
+            margin: 0 auto;
+        }
+
+        .status {
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: 600;
+            margin: 20px 0;
+            display: inline-block;
+        }
+
+        .status.pending {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .status.completed {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.failed {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            color: #666;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .instructions {
+            background: #e8f4fd;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+            text-align: left;
+        }
+
+        .instructions h3 {
+            color: #2980b9;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .instructions ol {
+            color: #555;
+            padding-left: 20px;
+        }
+
+        .instructions li {
+            margin-bottom: 5px;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border: 1px solid #c3e6cb;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border: 1px solid #f5c6cb;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        @media (max-width: 600px) {
+            .payment-container {
+                padding: 20px;
+                margin: 10px;
+            }
+            
+            h1 {
+                font-size: 24px;
+            }
+            
+            .qr-code img {
+                max-width: 150px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="payment-container">
+        <div class="logo">SP</div>
+        <h1>Thanh toán SePay</h1>
+        <p class="subtitle">Quét mã QR để thanh toán</p>
+
+        <div class="payment-info">
+            <div class="info-row">
+                <span class="info-label">Mã đơn hàng:</span>
+                <span class="info-value" id="orderId">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Số tiền:</span>
+                <span class="info-value amount" id="amount">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Nội dung:</span>
+                <span class="info-value" id="description">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Trạng thái:</span>
+                <span class="status pending" id="status">Đang chờ thanh toán</span>
+            </div>
+        </div>
+
+        <div class="qr-section">
+            <h3>Mã QR thanh toán</h3>
+            <div class="qr-code">
+                <div class="qr-placeholder" id="qrPlaceholder">
+                    Đang tải mã QR...
+                </div>
+                <img id="qrImage" style="display: none;" alt="QR Code">
+            </div>
+        </div>
+
+        <div class="instructions">
+            <h3>Hướng dẫn thanh toán:</h3>
+            <ol>
+                <li>Mở ứng dụng ngân hàng trên điện thoại</li>
+                <li>Chọn chức năng "Quét mã QR"</li>
+                <li>Quét mã QR ở trên</li>
+                <li>Kiểm tra thông tin và xác nhận thanh toán</li>
+                <li>Chờ hệ thống cập nhật trạng thái</li>
+            </ol>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Đang kiểm tra trạng thái thanh toán...</p>
+        </div>
+
+        <div id="message"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/api/v1';
+        let statusCheckInterval;
+        let orderId = null;
+        let paymentData = null;
+
+        function getUrlParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return {
+                orderId: urlParams.get('order_id') || urlParams.get('orderId'),
+                qrUrl: urlParams.get('qr_url') || urlParams.get('qrUrl'),
+                amount: urlParams.get('amount'),
+                description: urlParams.get('description') || urlParams.get('content'),
+                currency: urlParams.get('currency') || 'VND'
+            };
+        }
+
+        function displayPaymentInfo() {
+            const params = getUrlParams();
+            orderId = params.orderId;
+            
+            if (!orderId) {
+                showError('Thiếu thông tin đơn hàng');
+                return;
+            }
+
+            document.getElementById('orderId').textContent = orderId;
+            document.getElementById('amount').textContent = formatAmount(params.amount);
+            document.getElementById('description').textContent = params.description || 'Thanh toán đơn hàng';
+            
+            if (params.qrUrl) {
+                displayQRCode(params.qrUrl);
+            } else {
+                loadPaymentInfo();
+            }
+        }
+
+        async function loadPaymentInfo() {
+            try {
+                const response = await fetch(`${API_BASE}/internal/payments/status/${orderId}`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    paymentData = data;
+                    displayPaymentData(data);
+                    
+                    if (data.payment_url && data.payment_url.startsWith('data:')) {
+                        displayQRCode(data.payment_url);
+                    }
+                    
+                    startStatusCheck();
+                } else {
+                    showError('Không tìm thấy thông tin thanh toán');
+                }
+            } catch (error) {
+                showError('Lỗi tải thông tin: ' + error.message);
+            }
+        }
+
+        function displayPaymentData(data) {
+            document.getElementById('amount').textContent = formatAmount(data.amount);
+            document.getElementById('description').textContent = data.description || 'Thanh toán đơn hàng';
+            updateStatus(data.status);
+        }
+
+        function displayQRCode(qrUrl) {
+            const qrPlaceholder = document.getElementById('qrPlaceholder');
+            const qrImage = document.getElementById('qrImage');
+            
+            qrImage.src = qrUrl;
+            qrImage.style.display = 'block';
+            qrPlaceholder.style.display = 'none';
+        }
+
+        function updateStatus(status) {
+            const statusElement = document.getElementById('status');
+            statusElement.className = 'status';
+            
+            switch (status) {
+                case 'pending':
+                    statusElement.textContent = 'Đang chờ thanh toán';
+                    statusElement.classList.add('pending');
+                    break;
+                case 'completed':
+                    statusElement.textContent = 'Thanh toán thành công';
+                    statusElement.classList.add('completed');
+                    showSuccess('Thanh toán thành công! Cảm ơn bạn đã sử dụng dịch vụ.');
+                    stopStatusCheck();
+                    break;
+                case 'failed':
+                    statusElement.textContent = 'Thanh toán thất bại';
+                    statusElement.classList.add('failed');
+                    showError('Thanh toán thất bại. Vui lòng thử lại.');
+                    stopStatusCheck();
+                    break;
+                default:
+                    statusElement.textContent = 'Không xác định';
+                    statusElement.classList.add('pending');
+            }
+        }
+
+        async function checkPaymentStatus() {
+            if (!orderId) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/internal/payments/status/${orderId}`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    updateStatus(data.status);
+                } else {
+                    console.error('Lỗi kiểm tra trạng thái:', data.error);
+                }
+            } catch (error) {
+                console.error('Lỗi kết nối:', error);
+            }
+        }
+
+        function startStatusCheck() {
+            if (statusCheckInterval) {
+                clearInterval(statusCheckInterval);
+            }
+            
+            const randomInterval = Math.floor(Math.random() * 5000) + 5000; // 5000-10000ms
+            
+            statusCheckInterval = setInterval(() => {
+                checkPaymentStatus();
+            }, randomInterval);
+            
+            console.log(`Bắt đầu kiểm tra trạng thái mỗi ${randomInterval/1000} giây`);
+        }
+
+        function stopStatusCheck() {
+            if (statusCheckInterval) {
+                clearInterval(statusCheckInterval);
+                statusCheckInterval = null;
+                console.log('Dừng kiểm tra trạng thái');
+            }
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        function showError(message) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.innerHTML = `<div class="error-message">${message}</div>`;
+        }
+
+        function showSuccess(message) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.innerHTML = `<div class="success-message">${message}</div>`;
+        }
+
+        function formatAmount(amount) {
+            if (!amount) return '0 VND';
+            const num = parseFloat(amount);
+            return new Intl.NumberFormat('vi-VN', {
+                style: 'currency',
+                currency: 'VND'
+            }).format(num);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            displayPaymentInfo();
+        });
+
+        window.addEventListener('beforeunload', function() {
+            stopStatusCheck();
+        });
+    </script>
+</body>
+</html>
