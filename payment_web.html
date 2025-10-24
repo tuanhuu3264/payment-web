@@ -381,10 +381,13 @@
 
         <div id="message"></div>
         
-        <!-- Test Button -->
+        <!-- Test Buttons -->
         <div style="text-align: center; margin-top: 20px;">
-            <button onclick="testAPI()" style="background: #667eea; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
+            <button onclick="testAPI()" style="background: #667eea; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin: 5px;">
                 🧪 Test API
+            </button>
+            <button onclick="startImmediatePolling()" style="background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin: 5px;">
+                🔄 Start Polling
             </button>
         </div>
     </div>
@@ -496,7 +499,7 @@
                         displayQRCode(data.payment_url);
                     }
                     
-                    startStatusCheck();
+                    // Không cần startStatusCheck() nữa vì đã bắt đầu từ đầu
                 } else {
                     showError('Không tìm thấy thông tin thanh toán');
                 }
@@ -558,13 +561,15 @@
                 clearInterval(statusCheckInterval);
             }
             
-            const randomInterval = Math.floor(Math.random() * 5000) + 5000; // 5000-10000ms
+            // Polling liên tục mỗi 3 giây
+            const interval = 3000; // 3 giây
             
             statusCheckInterval = setInterval(() => {
+                console.log('⏰ Polling check payment status...');
                 checkPaymentStatus();
-            }, randomInterval);
+            }, interval);
             
-            console.log(`Bắt đầu kiểm tra trạng thái mỗi ${randomInterval/1000} giây`);
+            console.log(`🔄 Bắt đầu polling mỗi ${interval/1000} giây`);
         }
 
         function stopStatusCheck() {
@@ -691,16 +696,23 @@
             loadPaymentInfo();
         }
 
+        // Function để bắt đầu polling ngay lập tức
+        function startImmediatePolling() {
+            console.log('🚀 Bắt đầu polling ngay lập tức');
+            if (!orderId) {
+                orderId = 'test123';
+                console.log('🧪 Sử dụng orderId test:', orderId);
+            }
+            startStatusCheck();
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🎯 DOM Content Loaded - Bắt đầu khởi tạo');
             displayPaymentInfo();
             startTimer();
             
-            // Test API sau 2 giây
-            setTimeout(() => {
-                console.log('⏰ Test API sau 2 giây');
-                testAPI();
-            }, 2000);
+            // Bắt đầu polling ngay lập tức
+            startImmediatePolling();
         });
 
         window.addEventListener('beforeunload', function() {
