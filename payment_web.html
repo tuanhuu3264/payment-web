@@ -446,7 +446,7 @@
 
         async function loadPaymentInfo() {
             try {
-                const response = await fetch(`${API_BASE}/internal/payments/status/${orderId}`, {
+                const response = await fetch(`${API_BASE}/payments/status/${orderId}`, {
                     method: 'GET',
                     headers: getRequestHeaders()
                 });
@@ -455,7 +455,6 @@
                 if (response.ok) {
                     paymentData = data;
                     
-                    // Check if payment is successful and redirect
                     if (data.is_success === true) {
                         if (handleSuccessfulPayment()) {
                             return;
