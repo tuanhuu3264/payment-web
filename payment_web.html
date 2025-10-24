@@ -398,7 +398,7 @@
     </div>
 
     <script>
-        const API_BASE = 'http://localhost:8080/api/v1';
+        const API_BASE = 'https://api.dev.thuleht.com/backend';
         let statusCheckInterval;
         let orderId = null;
         let paymentData = null;
@@ -500,7 +500,7 @@
             if (!orderId) return;
 
             try {
-                const response = await fetch(`${API_BASE}/internal/payments/status/${orderId}`, {
+                const response = await fetch(`https://api.dev.thuleht.com/backend/orders/payments/status/${orderId}`, {
                     method: 'GET',
                     headers: getRequestHeaders()
                 });
