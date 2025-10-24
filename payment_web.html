@@ -380,6 +380,13 @@
         </div>
 
         <div id="message"></div>
+        
+        <!-- Test Button -->
+        <div style="text-align: center; margin-top: 20px;">
+            <button onclick="testAPI()" style="background: #667eea; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
+                🧪 Test API
+            </button>
+        </div>
     </div>
 
     <!-- Lock Screen -->
@@ -432,9 +439,9 @@
             orderHash = params.orderHash;
             
             if (!orderId) {
-                console.log('❌ Thiếu orderId');
-                showError('Thiếu thông tin đơn hàng');
-                return;
+                console.log('❌ Thiếu orderId - Sẽ test với orderId mặc định');
+                orderId = 'test123'; // Test với orderId mặc định
+                console.log('🧪 Sử dụng orderId test:', orderId);
             }
 
             console.log('✅ OrderId:', orderId, 'ReturnUrl:', returnUrl, 'OrderHash:', orderHash);
@@ -446,6 +453,9 @@
             if (params.qrUrl) {
                 console.log('📱 Có QR URL từ params, hiển thị QR');
                 displayQRCode(params.qrUrl);
+                // Vẫn gọi API để kiểm tra trạng thái
+                console.log('🔄 Vẫn gọi API để kiểm tra trạng thái');
+                loadPaymentInfo();
             } else {
                 console.log('🔄 Không có QR URL, gọi loadPaymentInfo');
                 loadPaymentInfo();
@@ -675,9 +685,22 @@
         `;
         document.head.appendChild(style);
 
+        // Test function để gọi API ngay lập tức
+        function testAPI() {
+            console.log('🧪 TEST API - Gọi API ngay lập tức');
+            loadPaymentInfo();
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('🎯 DOM Content Loaded - Bắt đầu khởi tạo');
             displayPaymentInfo();
             startTimer();
+            
+            // Test API sau 2 giây
+            setTimeout(() => {
+                console.log('⏰ Test API sau 2 giây');
+                testAPI();
+            }, 2000);
         });
 
         window.addEventListener('beforeunload', function() {
