@@ -454,7 +454,6 @@
                 
                 if (response.ok) {
                     paymentData = data;
-                    displayPaymentData(data);
                     
                     // Check if payment is successful and redirect
                     if (data.is_success === true) {
@@ -462,6 +461,14 @@
                             return;
                         }
                     }
+                    
+                    // Check for error
+                    if (data.error) {
+                        showError(data.error);
+                        return;
+                    }
+                    
+                    displayPaymentData(data);
                     
                     if (data.payment_url && data.payment_url.startsWith('data:')) {
                         displayQRCode(data.payment_url);
@@ -477,9 +484,7 @@
         }
 
         function displayPaymentData(data) {
-            document.getElementById('amount').textContent = formatAmount(data.amount);
             document.getElementById('description').textContent = data.description || 'Thanh toán đơn hàng';
-            updateStatus(data.status);
         }
 
         function displayQRCode(qrUrl) {
@@ -491,41 +496,6 @@
             qrPlaceholder.style.display = 'none';
         }
 
-        function updateStatus(status) {
-            const statusElement = document.getElementById('status');
-            statusElement.className = 'status';
-            
-            switch (status) {
-                case 'pending':
-                    statusElement.textContent = 'Đang chờ thanh toán';
-                    statusElement.classList.add('pending');
-                    break;
-                case 'completed':
-                    statusElement.textContent = 'Thanh toán thành công';
-                    statusElement.classList.add('completed');
-                    stopStatusCheck();
-                    
-                    // Redirect to return URL if available
-                    if (returnUrl) {
-                        showSuccess('Thanh toán thành công! Cảm ơn bạn đã sử dụng dịch vụ.<br>Đang chuyển hướng trong 3 giây...');
-                        setTimeout(() => {
-                            window.location.href = returnUrl;
-                        }, 3000); // Redirect after 3 seconds
-                    } else {
-                        showSuccess('Thanh toán thành công! Cảm ơn bạn đã sử dụng dịch vụ.');
-                    }
-                    break;
-                case 'failed':
-                    statusElement.textContent = 'Thanh toán thất bại';
-                    statusElement.classList.add('failed');
-                    showError('Thanh toán thất bại. Vui lòng thử lại.');
-                    stopStatusCheck();
-                    break;
-                default:
-                    statusElement.textContent = 'Không xác định';
-                    statusElement.classList.add('pending');
-            }
-        }
 
         async function checkPaymentStatus() {
             if (!orderId) return;
@@ -538,14 +508,18 @@
                 const data = await response.json();
                 
                 if (response.ok) {
-                    // Check if payment is successful and redirect
                     if (data.is_success === true) {
                         if (handleSuccessfulPayment()) {
                             return;
                         }
                     }
                     
-                    updateStatus(data.status);
+                    // Check for error
+                    if (data.error) {
+                        showError(data.error);
+                        stopStatusCheck();
+                        return;
+                    }
                 } else {
                     console.error('Lỗi kiểm tra trạng thái:', data.error);
                 }
