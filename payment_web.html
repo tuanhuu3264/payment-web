@@ -219,6 +219,93 @@
             font-weight: 600;
         }
 
+        .countdown-timer {
+            background: #fff3cd;
+            border: 2px solid #ffeaa7;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .countdown-timer h3 {
+            color: #856404;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .timer-display {
+            font-size: 24px;
+            font-weight: bold;
+            color: #e74c3c;
+            margin: 10px 0;
+        }
+
+        .timer-warning {
+            color: #856404;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .lock-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .lock-content {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        .lock-icon {
+            font-size: 48px;
+            color: #e74c3c;
+            margin-bottom: 20px;
+        }
+
+        .lock-title {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .lock-message {
+            color: #666;
+            font-size: 16px;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        .lock-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .lock-button:hover {
+            background: #5a6fd8;
+        }
+
         @media (max-width: 600px) {
             .payment-container {
                 padding: 20px;
@@ -286,7 +373,28 @@
             <p>Đang kiểm tra trạng thái thanh toán...</p>
         </div>
 
+        <div class="countdown-timer" id="countdownTimer">
+            <h3>⏰ Thời gian còn lại</h3>
+            <div class="timer-display" id="timerDisplay">30:00</div>
+            <div class="timer-warning">Trang web sẽ tự động khóa sau 30 phút</div>
+        </div>
+
         <div id="message"></div>
+    </div>
+
+    <!-- Lock Screen -->
+    <div class="lock-screen" id="lockScreen">
+        <div class="lock-content">
+            <div class="lock-icon">🔒</div>
+            <h2 class="lock-title">Phiên đã hết hạn</h2>
+            <p class="lock-message">
+                Trang web đã bị khóa do hết thời gian 30 phút.<br>
+                Vui lòng tải lại trang để tiếp tục sử dụng.
+            </p>
+            <button class="lock-button" onclick="location.reload()">
+                Tải lại trang
+            </button>
+        </div>
     </div>
 
     <script>
@@ -294,6 +402,12 @@
         let statusCheckInterval;
         let orderId = null;
         let paymentData = null;
+        let returnUrl = null;
+        let orderHash = null;
+        
+        let timeLeft = 30 * 60; 
+        let timerInterval;
+        let isLocked = false;
 
         function getUrlParams() {
             const urlParams = new URLSearchParams(window.location.search);
@@ -302,13 +416,17 @@
                 qrUrl: urlParams.get('qr_url') || urlParams.get('qrUrl'),
                 amount: urlParams.get('amount'),
                 description: urlParams.get('description') || urlParams.get('content'),
-                currency: urlParams.get('currency') || 'VND'
+                currency: urlParams.get('currency') || 'VND',
+                returnUrl: urlParams.get('return_url') || urlParams.get('returnUrl') || urlParams.get('return'),
+                orderHash: urlParams.get('order_hash') || urlParams.get('orderHash') || urlParams.get('hash')
             };
         }
 
         function displayPaymentInfo() {
             const params = getUrlParams();
             orderId = params.orderId;
+            returnUrl = params.returnUrl;
+            orderHash = params.orderHash;
             
             if (!orderId) {
                 showError('Thiếu thông tin đơn hàng');
@@ -328,12 +446,22 @@
 
         async function loadPaymentInfo() {
             try {
-                const response = await fetch(`${API_BASE}/internal/payments/status/${orderId}`);
+                const response = await fetch(`${API_BASE}/internal/payments/status/${orderId}`, {
+                    method: 'GET',
+                    headers: getRequestHeaders()
+                });
                 const data = await response.json();
                 
                 if (response.ok) {
                     paymentData = data;
                     displayPaymentData(data);
+                    
+                    // Check if payment is successful and redirect
+                    if (data.is_success === true) {
+                        if (handleSuccessfulPayment()) {
+                            return;
+                        }
+                    }
                     
                     if (data.payment_url && data.payment_url.startsWith('data:')) {
                         displayQRCode(data.payment_url);
@@ -375,8 +503,17 @@
                 case 'completed':
                     statusElement.textContent = 'Thanh toán thành công';
                     statusElement.classList.add('completed');
-                    showSuccess('Thanh toán thành công! Cảm ơn bạn đã sử dụng dịch vụ.');
                     stopStatusCheck();
+                    
+                    // Redirect to return URL if available
+                    if (returnUrl) {
+                        showSuccess('Thanh toán thành công! Cảm ơn bạn đã sử dụng dịch vụ.<br>Đang chuyển hướng trong 3 giây...');
+                        setTimeout(() => {
+                            window.location.href = returnUrl;
+                        }, 3000); // Redirect after 3 seconds
+                    } else {
+                        showSuccess('Thanh toán thành công! Cảm ơn bạn đã sử dụng dịch vụ.');
+                    }
                     break;
                 case 'failed':
                     statusElement.textContent = 'Thanh toán thất bại';
@@ -394,10 +531,20 @@
             if (!orderId) return;
 
             try {
-                const response = await fetch(`${API_BASE}/internal/payments/status/${orderId}`);
+                const response = await fetch(`${API_BASE}/internal/payments/status/${orderId}`, {
+                    method: 'GET',
+                    headers: getRequestHeaders()
+                });
                 const data = await response.json();
                 
                 if (response.ok) {
+                    // Check if payment is successful and redirect
+                    if (data.is_success === true) {
+                        if (handleSuccessfulPayment()) {
+                            return;
+                        }
+                    }
+                    
                     updateStatus(data.status);
                 } else {
                     console.error('Lỗi kiểm tra trạng thái:', data.error);
@@ -452,12 +599,114 @@
             }).format(num);
         }
 
+        function handleSuccessfulPayment() {
+            if (returnUrl) {
+                showSuccess('Thanh toán thành công! Đang chuyển hướng...');
+                stopStatusCheck();
+                setTimeout(() => {
+                    window.location.href = returnUrl;
+                }, 2000);
+                return true;
+            }
+            return false;
+        }
+
+        function getRequestHeaders() {
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+            
+            if (orderHash) {
+                headers['X-Order-Hash'] = orderHash;
+            }
+            
+            return headers;
+        }
+
+        // Timer functions
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerDisplay();
+                
+                if (timeLeft <= 0) {
+                    lockWebsite();
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const minutes = Math.floor(timeLeft / 60);
+            const seconds = timeLeft % 60;
+            const display = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            document.getElementById('timerDisplay').textContent = display;
+            
+            // Change color when less than 5 minutes
+            const timerDisplay = document.getElementById('timerDisplay');
+            if (timeLeft <= 300) { // 5 minutes
+                timerDisplay.style.color = '#e74c3c';
+                timerDisplay.style.animation = 'pulse 1s infinite';
+            }
+        }
+
+        function lockWebsite() {
+            if (isLocked) return;
+            
+            isLocked = true;
+            clearInterval(timerInterval);
+            stopStatusCheck();
+            
+            // Show lock screen
+            document.getElementById('lockScreen').style.display = 'flex';
+            
+            // Disable all interactions
+            document.body.style.pointerEvents = 'none';
+            document.body.style.overflow = 'hidden';
+            
+            // Show warning
+            showError('Phiên đã hết hạn! Trang web đã bị khóa sau 30 phút.');
+        }
+
+        function resetTimer() {
+            timeLeft = 30 * 60;
+            isLocked = false;
+            clearInterval(timerInterval);
+            startTimer();
+            updateTimerDisplay();
+        }
+
+        // Add pulse animation for warning
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes pulse {
+                0% { opacity: 1; }
+                50% { opacity: 0.5; }
+                100% { opacity: 1; }
+            }
+        `;
+        document.head.appendChild(style);
+
         document.addEventListener('DOMContentLoaded', function() {
             displayPaymentInfo();
+            startTimer();
         });
 
         window.addEventListener('beforeunload', function() {
             stopStatusCheck();
+            clearInterval(timerInterval);
+        });
+
+        // Reset timer on user activity
+        document.addEventListener('click', function() {
+            if (!isLocked) {
+                resetTimer();
+            }
+        });
+
+        document.addEventListener('keypress', function() {
+            if (!isLocked) {
+                resetTimer();
+            }
         });
     </script>
 </body>
