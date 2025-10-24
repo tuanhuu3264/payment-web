@@ -526,8 +526,8 @@
             if (!orderId) return;
 
             try {
-                console.log('🔄 Gọi API checkPaymentStatus:', `${API_BASE}/orders/payments/status/${orderId}`);
-                const response = await fetch(`${API_BASE}/orders/payments/status/${orderId}`, {
+                console.log('🔄 Gọi API checkPaymentStatus:', `${API_BASE}/v1/orders/payments/status/${orderId}`);
+                const response = await fetch(`${API_BASE}/v1/orders/payments/status/${orderId}`, {
                     method: 'GET',
                     headers: getRequestHeaders()
                 });
