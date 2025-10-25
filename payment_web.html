@@ -467,10 +467,14 @@
 
         async function loadPaymentInfo() {
             try {
-                console.log('🔍 Gọi API loadPaymentInfo:', `${API_BASE}/payments/status/${orderId}`);
+                const endpoint = orderHash ? 
+                    `${API_BASE}/v1/orders/${orderHash}/payments/status/${orderId}` : 
+                    `${API_BASE}/v1/orders/payments/status/${orderId}`;
+                
+                console.log('🔍 Gọi API loadPaymentInfo:', endpoint);
                 console.log('📋 Headers:', getRequestHeaders());
                 
-                const response = await fetch(`${API_BASE}/payments/status/${orderId}`, {
+                const response = await fetch(endpoint, {
                     method: 'GET',
                     headers: getRequestHeaders()
                 });
@@ -526,8 +530,12 @@
             if (!orderId) return;
 
             try {
-                console.log('🔄 Gọi API checkPaymentStatus:', `${API_BASE}/v1/orders/payments/status/${orderId}`);
-                const response = await fetch(`${API_BASE}/v1/orders/payments/status/${orderId}`, {
+                const endpoint = orderHash ? 
+                    `${API_BASE}/v1/orders/${orderHash}/payments/status/${orderId}` : 
+                    `${API_BASE}/v1/orders/payments/status/${orderId}`;
+                
+                console.log('🔄 Gọi API checkPaymentStatus:', endpoint);
+                const response = await fetch(endpoint, {
                     method: 'GET',
                     headers: getRequestHeaders()
                 });
@@ -616,15 +624,9 @@
         }
 
         function getRequestHeaders() {
-            const headers = {
+            return {
                 'Content-Type': 'application/json'
             };
-            
-            if (orderHash) {
-                headers['X-Order-Hash'] = orderHash;
-            }
-            
-            return headers;
         }
 
         // Timer functions
@@ -703,6 +705,7 @@
                 orderId = 'test123';
                 console.log('🧪 Sử dụng orderId test:', orderId);
             }
+            console.log('📋 OrderId:', orderId, 'OrderHash:', orderHash);
             startStatusCheck();
         }
 
