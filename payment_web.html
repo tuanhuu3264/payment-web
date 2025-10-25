@@ -468,8 +468,8 @@
         async function loadPaymentInfo() {
             try {
                 const endpoint = orderHash ? 
-                    `${API_BASE}/v1/orders/${orderHash}/payments/status/${orderId}` : 
-                    `${API_BASE}/v1/orders/payments/status/${orderId}`;
+                    `${API_BASE}/v1/payments/status/${orderHash}/${orderId}` : 
+                    `${API_BASE}/v1/payments/status/${orderId}`;
                 
                 console.log('🔍 Gọi API loadPaymentInfo:', endpoint);
                 console.log('📋 Headers:', getRequestHeaders());
@@ -531,8 +531,8 @@
 
             try {
                 const endpoint = orderHash ? 
-                    `${API_BASE}/v1/orders/${orderHash}/payments/status/${orderId}` : 
-                    `${API_BASE}/v1/orders/payments/status/${orderId}`;
+                    `${API_BASE}/v1/payments/status/${orderHash}/${orderId}` : 
+                    `${API_BASE}/v1/payments/status/${orderId}`;
                 
                 console.log('🔄 Gọi API checkPaymentStatus:', endpoint);
                 const response = await fetch(endpoint, {
