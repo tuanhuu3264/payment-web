@@ -432,7 +432,7 @@
             };
         }
 
-        function displayPaymentInfo() {
+        async function displayPaymentInfo() {
             console.log('🚀 Bắt đầu displayPaymentInfo');
             const params = getUrlParams();
             console.log('📋 URL Params:', params);
@@ -453,6 +453,18 @@
             document.getElementById('amount').textContent = formatAmount(params.amount);
             document.getElementById('description').textContent = params.description || 'Thanh toán đơn hàng';
             
+            // Validate đầu tiên trước khi làm bất cứ gì khác
+            console.log('🔍 VALIDATE ĐẦU TIÊN - Bắt đầu validate payment...');
+            const validateResult = await validatePayment();
+            
+            if (!validateResult.isValid) {
+                console.log('❌ VALIDATE THẤT BẠI NGAY TỪ ĐẦU:', validateResult.error);
+                showError(validateResult.error);
+                return; // Dừng toàn bộ quá trình
+            }
+            
+            console.log('✅ VALIDATE THÀNH CÔNG - Tiếp tục với logic khác...');
+            
             if (params.qrUrl) {
                 console.log('📱 Có QR URL từ params, hiển thị QR');
                 displayQRCode(params.qrUrl);
@@ -467,6 +479,9 @@
 
         async function loadPaymentInfo() {
             try {
+                // Validate đã được gọi ở displayPaymentInfo() rồi, không cần validate lại
+                console.log('🔄 Tiếp tục loadPaymentInfo (đã validate ở đầu)...');
+                
                 const endpoint = orderHash ? 
                     `${API_BASE}/v1/payments/status/${orderHash}/${orderId}` : 
                     `${API_BASE}/v1/payments/status/${orderId}`;
@@ -525,11 +540,68 @@
             qrPlaceholder.style.display = 'none';
         }
 
+        async function validatePayment() {
+            if (!orderHash) {
+                console.log('⚠️ Không có orderHash để validate');
+                return { isValid: true }; // Nếu không có orderHash thì skip validate
+            }
+
+            try {
+                const endpoint = `${API_BASE}/payments/validate/${orderHash}`;
+                console.log('🔍 Gọi API validatePayment:', endpoint);
+                
+                const response = await fetch(endpoint, {
+                    method: 'GET',
+                    headers: getRequestHeaders()
+                });
+                
+                console.log('📥 Validate response status:', response.status);
+                const data = await response.json();
+                console.log('📄 Validate response data:', data);
+                
+                // Check các điều kiện lỗi
+                if (data.error && data.error !== null && data.error !== '') {
+                    console.log('❌ Validate error:', data.error);
+                    return { isValid: false, error: data.error };
+                }
+                
+                if (data.is_success === false) {
+                    console.log('❌ Validate is_success = false');
+                    return { isValid: false, error: 'Validation failed' };
+                }
+                
+                if (data.status && data.status !== 'pending') {
+                    console.log('❌ Validate status không phải pending:', data.status);
+                    return { isValid: false, error: `Invalid status: ${data.status}` };
+                }
+                
+                console.log('✅ Validate thành công');
+                return { isValid: true, data: data };
+                
+            } catch (error) {
+                console.error('❌ Lỗi validate:', error);
+                return { isValid: false, error: 'Validation error: ' + error.message };
+            }
+        }
+
 
         async function checkPaymentStatus() {
             if (!orderId) return;
 
             try {
+                // Validate trước khi check status
+                console.log('🔍 Bắt đầu validate payment trong checkPaymentStatus...');
+                const validateResult = await validatePayment();
+                
+                if (!validateResult.isValid) {
+                    console.log('❌ Validate thất bại trong checkPaymentStatus:', validateResult.error);
+                    showError(validateResult.error);
+                    stopStatusCheck();
+                    return;
+                }
+                
+                console.log('✅ Validate thành công trong checkPaymentStatus, tiếp tục check status...');
+                
                 const endpoint = orderHash ? 
                     `${API_BASE}/v1/payments/status/${orderHash}/${orderId}` : 
                     `${API_BASE}/v1/payments/status/${orderId}`;
