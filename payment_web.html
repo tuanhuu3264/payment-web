@@ -485,6 +485,7 @@
         let paymentData = null;
         let returnUrl = null;
         let orderHash = null;
+        let descriptionFromParams = null;
         
         let timeLeft = 30 * 60; 
         let timerInterval;
@@ -492,13 +493,32 @@
 
         function getUrlParams() {
             const urlParams = new URLSearchParams(window.location.search);
+            
+            // Lấy return URL và decode nếu cần
+            let returnUrl = urlParams.get('return_url') || urlParams.get('returnUrl') || urlParams.get('return');
+            if (returnUrl) {
+                // Decode nhiều lần nếu cần (xử lý trường hợp encode nhiều lần)
+                let previousUrl = '';
+                while (returnUrl !== previousUrl && (returnUrl.includes('%3A') || returnUrl.includes('%2F') || returnUrl.includes('%3B'))) {
+                    previousUrl = returnUrl;
+                    try {
+                        returnUrl = decodeURIComponent(returnUrl);
+                    } catch (e) {
+                        console.error('❌ Lỗi decode return URL:', e);
+                        break;
+                    }
+                }
+                console.log('🔍 Return URL gốc:', urlParams.get('return_url') || urlParams.get('returnUrl') || urlParams.get('return'));
+                console.log('✅ Return URL sau decode:', returnUrl);
+            }
+            
             return {
                 orderId: urlParams.get('order_id') || urlParams.get('orderId'),
                 qrUrl: urlParams.get('qr_url') || urlParams.get('qrUrl'),
                 amount: urlParams.get('amount'),
                 description: urlParams.get('description') || urlParams.get('content'),
                 currency: urlParams.get('currency') || 'VND',
-                returnUrl: urlParams.get('return_url') || urlParams.get('returnUrl') || urlParams.get('return'),
+                returnUrl: returnUrl,
                 orderHash: urlParams.get('order_hash') || urlParams.get('orderHash') || urlParams.get('hash')
             };
         }
@@ -522,7 +542,8 @@
 
             document.getElementById('orderId').textContent = orderId;
             document.getElementById('amount').textContent = formatAmount(params.amount);
-            document.getElementById('description').textContent = params.description || 'Thanh toán đơn hàng';
+            descriptionFromParams = params.description;
+            document.getElementById('description').textContent = descriptionFromParams || '-';
             
             // Validate đầu tiên trước khi làm bất cứ gì khác
             console.log('🔍 VALIDATE ĐẦU TIÊN - Bắt đầu validate payment...');
@@ -614,7 +635,9 @@
         }
 
         function displayPaymentData(data) {
-            document.getElementById('description').textContent = data.description || 'Thanh toán đơn hàng';
+            // Ưu tiên description từ params, nếu không có thì dùng từ data
+            const description = descriptionFromParams || data.description || '-';
+            document.getElementById('description').textContent = description;
         }
 
         function displayQRCode(qrUrl) {
@@ -719,18 +742,8 @@
             if (!orderId) return;
 
             try {
-                // Validate trước khi check status
-                console.log('🔍 Bắt đầu validate payment trong checkPaymentStatus...');
-                const validateResult = await validatePayment();
-                
-                if (!validateResult.isValid) {
-                    console.log('❌ Validate thất bại trong checkPaymentStatus:', validateResult.error);
-                    showErrorComponent(validateResult.error || 'Lỗi xác thực thanh toán');
-                    stopStatusCheck();
-                    return;
-                }
-                
-                console.log('✅ Validate thành công trong checkPaymentStatus, tiếp tục check status...');
+                // Chỉ check status, không validate lại (validate đã được gọi 1 lần ở đầu)
+                console.log('🔄 Polling check payment status...');
                 
                 if (!orderHash) {
                     console.error('❌ Thiếu orderHash để gọi API status');
@@ -780,6 +793,7 @@
                 // Nếu thành công (is_success === true) - redirect về return URL
                 if (data.is_success === true) {
                     console.log('✅ Thanh toán thành công, redirecting to return URL...');
+                    stopStatusCheck();
                     redirectToReturnUrl();
                     return;
                 }
@@ -833,7 +847,7 @@
                     case 'pending':
                         statusElement.textContent = 'Đang chờ thanh toán';
                         break;
-                    case 'completed':
+                    case 'success':
                         statusElement.textContent = 'Thanh toán thành công';
                         break;
                     case 'failed':
@@ -883,11 +897,25 @@
 
         function redirectToReturnUrl() {
             if (returnUrl) {
-                console.log('🔄 Redirecting to return URL:', returnUrl);
+                // Đảm bảo return URL đã được decode đúng
+                let decodedReturnUrl = returnUrl;
+                try {
+                    // Decode nhiều lần nếu cần (xử lý trường hợp encode nhiều lần)
+                    let previousUrl = '';
+                    while (decodedReturnUrl !== previousUrl && (decodedReturnUrl.includes('%3A') || decodedReturnUrl.includes('%2F') || decodedReturnUrl.includes('%3B'))) {
+                        previousUrl = decodedReturnUrl;
+                        decodedReturnUrl = decodeURIComponent(decodedReturnUrl);
+                    }
+                } catch (e) {
+                    console.error('❌ Lỗi decode return URL trong redirect:', e);
+                    decodedReturnUrl = returnUrl; // Fallback: sử dụng URL gốc
+                }
+                
+                console.log('🔄 Redirecting to return URL:', decodedReturnUrl);
                 showSuccess('Thanh toán thành công! Đang chuyển hướng...');
                 stopStatusCheck();
                 setTimeout(() => {
-                    window.location.href = returnUrl;
+                    window.location.href = decodedReturnUrl;
                 }, 2000);
             } else {
                 console.warn('⚠️ Không có returnUrl để redirect');
@@ -906,11 +934,8 @@
 
         function handleSuccessfulPayment() {
             if (returnUrl) {
-                showSuccess('Thanh toán thành công! Đang chuyển hướng...');
                 stopStatusCheck();
-                setTimeout(() => {
-                    window.location.href = returnUrl;
-                }, 2000);
+                redirectToReturnUrl();
                 return true;
             }
             return false;
