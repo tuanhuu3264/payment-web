@@ -619,7 +619,6 @@
                 const data = await response.json();
                 console.log('📄 Validate response data:', data);
                 
-                // Check các điều kiện lỗi
                 if (data.error && data.error !== null && data.error !== '') {
                     console.log('❌ Validate error:', data.error);
                     return { isValid: false, error: data.error };
@@ -710,6 +709,7 @@
                 // Nếu thành công (is_success === true)
                 if (data.is_success === true) {
                     if (handleSuccessfulPayment()) {
+                        redirectToReturnUrl();
                         return;
                     }
                 }
