@@ -551,7 +551,18 @@
             
             if (!validateResult.isValid) {
                 console.log('❌ VALIDATE THẤT BẠI NGAY TỪ ĐẦU:', validateResult.error);
-                showErrorComponent('Xin vui lòng xem lại');
+                // Dừng timer và khóa trang web khi validate lỗi
+                clearInterval(timerInterval);
+                // Cập nhật thông báo lock screen cho trường hợp validate lỗi
+                const lockMessage = document.querySelector('.lock-message');
+                if (lockMessage) {
+                    lockMessage.innerHTML = 'Giao dịch thất bại.<br>Vui lòng thử lại';
+                }
+                const lockTitle = document.querySelector('.lock-title');
+                if (lockTitle) {
+                    lockTitle.textContent = 'Giao dịch thất bại';
+                }
+                lockWebsite(false); // Không hiển thị thông báo lỗi vì đã có trong lock screen
                 return; // Dừng toàn bộ quá trình
             }
             
@@ -857,6 +868,22 @@
                 }
             }
             
+            // Nếu thất bại thì dừng timer và khóa trang web
+            if (status === 'failed') {
+                console.log('❌ Giao dịch thất bại');
+                clearInterval(timerInterval);
+                // Cập nhật thông báo lock screen cho trường hợp thất bại
+                const lockMessage = document.querySelector('.lock-message');
+                if (lockMessage) {
+                    lockMessage.innerHTML = 'Giao dịch thất bại.<br>Vui lòng thử lại';
+                }
+                const lockTitle = document.querySelector('.lock-title');
+                if (lockTitle) {
+                    lockTitle.textContent = 'Giao dịch thất bại';
+                }
+                lockWebsite(false); // Không hiển thị thông báo lỗi vì đã có trong lock screen
+            }
+            
             console.log(`✅ Đã cập nhật trạng thái: ${status} - ${message || statusElement.textContent}`);
         }
 
@@ -974,7 +1001,7 @@
             }
         }
 
-        function lockWebsite() {
+        function lockWebsite(showErrorMessage = true) {
             if (isLocked) return;
             
             isLocked = true;
@@ -988,8 +1015,10 @@
             document.body.style.pointerEvents = 'none';
             document.body.style.overflow = 'hidden';
             
-            // Show warning
-            showError('Phiên đã hết hạn! Trang web đã bị khóa sau 15 phút.');
+            // Show warning (chỉ hiển thị nếu không phải do thất bại)
+            if (showErrorMessage) {
+                showError('Phiên đã hết hạn! Trang web đã bị khóa sau 15 phút.');
+            }
         }
 
         function resetTimer() {
