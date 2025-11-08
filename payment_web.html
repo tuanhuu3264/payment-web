@@ -306,6 +306,65 @@
             background: #5a6fd8;
         }
 
+        .error-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+        }
+
+        .error-content {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        .error-icon {
+            font-size: 64px;
+            color: #e74c3c;
+            margin-bottom: 20px;
+        }
+
+        .error-title {
+            font-size: 24px;
+            color: #333;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .error-message {
+            color: #666;
+            font-size: 16px;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        .error-button {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .error-button:hover {
+            background: #c0392b;
+        }
+
         @media (max-width: 600px) {
             .payment-container {
                 padding: 20px;
@@ -407,6 +466,18 @@
         </div>
     </div>
 
+    <!-- Error Component -->
+    <div class="error-overlay" id="errorOverlay" style="display: none;">
+        <div class="error-content">
+            <div class="error-icon">❌</div>
+            <h2 class="error-title">Lỗi xác thực</h2>
+            <p class="error-message" id="errorMessage">Đã xảy ra lỗi trong quá trình xác thực thanh toán.</p>
+            <button class="error-button" onclick="closeErrorComponent()">
+                Đóng
+            </button>
+        </div>
+    </div>
+
     <script>
         const API_BASE = 'https://api.dev.thuleht.com/backend';
         let statusCheckInterval;
@@ -459,7 +530,7 @@
             
             if (!validateResult.isValid) {
                 console.log('❌ VALIDATE THẤT BẠI NGAY TỪ ĐẦU:', validateResult.error);
-                showError(validateResult.error);
+                showErrorComponent(validateResult.error || 'Lỗi xác thực thanh toán');
                 return; // Dừng toàn bộ quá trình
             }
             
@@ -654,7 +725,7 @@
                 
                 if (!validateResult.isValid) {
                     console.log('❌ Validate thất bại trong checkPaymentStatus:', validateResult.error);
-                    showError(validateResult.error);
+                    showErrorComponent(validateResult.error || 'Lỗi xác thực thanh toán');
                     stopStatusCheck();
                     return;
                 }
@@ -706,12 +777,11 @@
                     return;
                 }
                 
-                // Nếu thành công (is_success === true)
+                // Nếu thành công (is_success === true) - redirect về return URL
                 if (data.is_success === true) {
-                    if (handleSuccessfulPayment()) {
-                        redirectToReturnUrl();
-                        return;
-                    }
+                    console.log('✅ Thanh toán thành công, redirecting to return URL...');
+                    redirectToReturnUrl();
+                    return;
                 }
             } catch (error) {
                 console.error('❌ Lỗi kết nối:', error);
@@ -787,6 +857,42 @@
         function showSuccess(message) {
             const messageDiv = document.getElementById('message');
             messageDiv.innerHTML = `<div class="success-message">${message}</div>`;
+        }
+
+        function showErrorComponent(errorMessage) {
+            const errorOverlay = document.getElementById('errorOverlay');
+            const errorMessageElement = document.getElementById('errorMessage');
+            
+            if (errorMessageElement) {
+                errorMessageElement.textContent = errorMessage || 'Đã xảy ra lỗi trong quá trình xác thực thanh toán.';
+            }
+            
+            if (errorOverlay) {
+                errorOverlay.style.display = 'flex';
+            }
+            
+            console.error('❌ Hiển thị component lỗi:', errorMessage);
+        }
+
+        function closeErrorComponent() {
+            const errorOverlay = document.getElementById('errorOverlay');
+            if (errorOverlay) {
+                errorOverlay.style.display = 'none';
+            }
+        }
+
+        function redirectToReturnUrl() {
+            if (returnUrl) {
+                console.log('🔄 Redirecting to return URL:', returnUrl);
+                showSuccess('Thanh toán thành công! Đang chuyển hướng...');
+                stopStatusCheck();
+                setTimeout(() => {
+                    window.location.href = returnUrl;
+                }, 2000);
+            } else {
+                console.warn('⚠️ Không có returnUrl để redirect');
+                showSuccess('Thanh toán thành công!');
+            }
         }
 
         function formatAmount(amount) {
