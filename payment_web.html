@@ -592,7 +592,7 @@
             }
 
             try {
-                const endpoint = `${API_BASE}/payments/validate/${orderHash}`;
+                const endpoint = `${API_BASE}/v1/payments/validate/${orderHash}`;
                 console.log('🔍 Gọi API validatePayment:', endpoint);
                 
                 const response = await fetch(endpoint, {
