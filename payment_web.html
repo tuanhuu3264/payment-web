@@ -482,10 +482,13 @@
                 // Validate đã được gọi ở displayPaymentInfo() rồi, không cần validate lại
                 console.log('🔄 Tiếp tục loadPaymentInfo (đã validate ở đầu)...');
                 
-                const endpoint = orderHash ? 
-                    `${API_BASE}/v1/payments/status/${orderHash}/${orderId}` : 
-                    `${API_BASE}/v1/payments/status/${orderId}`;
+                if (!orderHash) {
+                    console.error('❌ Thiếu orderHash để gọi API status');
+                    showError('Thiếu thông tin orderHash');
+                    return;
+                }
                 
+                const endpoint = `${API_BASE}/v1/payments/status/${orderHash}`;
                 console.log('🔍 Gọi API loadPaymentInfo:', endpoint);
                 console.log('📋 Headers:', getRequestHeaders());
                 
@@ -647,10 +650,14 @@
                 
                 console.log('✅ Validate thành công trong checkPaymentStatus, tiếp tục check status...');
                 
-                const endpoint = orderHash ? 
-                    `${API_BASE}/v1/payments/status/${orderHash}/${orderId}` : 
-                    `${API_BASE}/v1/payments/status/${orderId}`;
+                if (!orderHash) {
+                    console.error('❌ Thiếu orderHash để gọi API status');
+                    showError('Thiếu thông tin orderHash');
+                    stopStatusCheck();
+                    return;
+                }
                 
+                const endpoint = `${API_BASE}/v1/payments/status/${orderHash}`;
                 console.log('🔄 Gọi API checkPaymentStatus:', endpoint);
                 const response = await fetch(endpoint, {
                     method: 'GET',
